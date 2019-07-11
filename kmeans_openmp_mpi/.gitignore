@@ -1,5 +1,8 @@
-#ignore object files
+# Ignore object files
 *.o
 
-#ignore data files 
+# Ignore data files 
 *.txt
+
+# Ignore network config files
+slaves
