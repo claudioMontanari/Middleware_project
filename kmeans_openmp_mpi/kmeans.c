@@ -7,6 +7,7 @@
 
 static const double TOLERANCE = 0.00000000001;
 
+// Centroids are initialized using randomly chosen points in the dataset given
 void init_centroids(Datapoint* dataset, Centroid* centroids, int dimensions, int nr_centroids, long size){
 
 	int i, j, rand_position;
@@ -41,17 +42,24 @@ void compute_distance(Datapoint* dataset, Centroid* centroids, int dimensions, i
 		for( j = 1; j < nr_centroids; j++){
 			temp_distance = distance(&dataset[i], &centroids[j]);
 
-			if( temp_distance <= min_distance ){
+			if( temp_distance < min_distance ){
 				min_distance = temp_distance;
 				min_centroid = j;
 			}
 		}
+		//TODO: what if here I do something like: 
+		//	temp_centroids[min_centroid]++;
+		//where temp_centroids is a private array of int that keeps track of the number of points for a given centroid.
+		//At the end I'll need to aggregate only this partial results. 
+		//(It should work better if the datapoints don't fit in the cache).
+		
 		dataset[i].centroid = min_centroid;
 	}
 
 
 }
 
+// TODO: Check if doing this without parallelization increases performance (overall we have few dimensions/centroids)
 void update_accumulators(Datapoint* dataset, Centroid* centroids, int dimensions, int nr_centroids, long size){
 
 	int i, k;

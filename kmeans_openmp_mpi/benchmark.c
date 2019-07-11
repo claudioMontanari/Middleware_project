@@ -12,8 +12,8 @@
 
 #define DEFAULT_DURATION 	10000
 #define DEFAULT_NTHREADS 	4
-#define DEFAULT_CENTROIDS   3
-#define DEFAULT_DIMENSIONS  2
+#define DEFAULT_CENTROIDS   	3
+#define DEFAULT_DIMENSIONS  	2
 #define DEFAULT_INPUT   	"./Data/input.csv"
 #define DEFAULT_OUTPUT 		"./Data/output.csv"
 #define DEFAULT_RESTARTS   	0
@@ -49,7 +49,6 @@ long build_data_points(FILE* fp, Datapoint** dataset_ptr, int dimensions){
 
 	*dataset_ptr = (Datapoint*) malloc(sizeof(Datapoint) * size);
 	Datapoint* dataset = *dataset_ptr;
-
 	if( dataset == NULL){
 		printf("Memory allocation error\n");
 		return -1;
@@ -125,8 +124,8 @@ int main(int argc, char *argv[])
 		{"help",           		no_argument,       NULL, 'h'},
 		{"time-duration",  		required_argument, NULL, 't'},
 		{"num-of-threads", 		required_argument, NULL, 'n'},
-		{"num-of-centroids",	required_argument, NULL, 'c'},
-		{"num-of-dimensions",	required_argument, NULL, 'd'},
+		{"num-of-centroids",		required_argument, NULL, 'c'},
+		{"num-of-dimensions",		required_argument, NULL, 'd'},
 		{"input-file",     		required_argument, NULL, 'p'},
 		{"output-file",    		required_argument, NULL, 'o'},
 		{"restarts",       		required_argument, NULL, 'r'},
@@ -141,7 +140,7 @@ int main(int argc, char *argv[])
 	int nr_centroids = 				DEFAULT_CENTROIDS;
 	int nr_dimensions =			 	DEFAULT_DIMENSIONS;
 	char* input_file = 				DEFAULT_INPUT;
-	char* output_file = 			DEFAULT_OUTPUT;
+	char* output_file = 				DEFAULT_OUTPUT;
 	int nr_restarts = 				DEFAULT_RESTARTS;
 	
 	FILE* fp, *f_out;
