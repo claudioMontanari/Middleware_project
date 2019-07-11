@@ -21,5 +21,9 @@ echo 'Updating the system'
 blast "sudo apt-get update --fix-missing" >/dev/null
 echo 'Installing performance monitoring tools'
 blast "sudo apt-get install --assume-yes htop dstat sysstat iperf3" >/dev/null 
+echo 'Installing MPI tools'
+blast "sudo apt-get install --assume-yes openmpi-bin openmpi-common openssh-client openssh-server libopenmpi2 libopenmpi-dev" >/dev/null
+
+echo 'Run make in order to generate all the executables'
 
 exit
