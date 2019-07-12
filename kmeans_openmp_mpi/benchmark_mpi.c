@@ -14,7 +14,7 @@
 #define DEFAULT_ITERATIONS	10
 #define DEFAULT_NTHREADS 	4
 #define DEFAULT_CENTROIDS   	3
-#define DEFAULT_DIMENSIONS  	2
+#define DEFAULT_DIMENSIONS  	3
 #define DEFAULT_INPUT   	"./Data/input.csv"
 #define DEFAULT_OUTPUT 		"./Data/output.csv"
 #define DEFAULT_RESTARTS   	0
@@ -32,6 +32,14 @@ void print_args(void)
 	printf("  -i: path to input .csv file (default path %s)\n", DEFAULT_INPUT);
 	printf("  -o: path to output .csv file (default path %s)\n", DEFAULT_OUTPUT);
 	printf("  -r: number of restarts (default %d)\n", DEFAULT_RESTARTS);
+}
+
+void print_point(double* point, int dimensions){
+  	int i;
+  	for(i = 0; i < dimensions - 1; i++){
+		printf("%lf ", point[i]);
+	}
+	printf("%lf\n", point[i]);
 }
 
 long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, const int rank, const int group_size){
@@ -70,11 +78,12 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 			if( !fscanf(fp, "%lf, ", &dataset[index + i]))
 				return -1;
 		}
-		if( !fscanf(fp, "%lf\n", &dataset[index + 1]) ) 
+		if( !fscanf(fp, "%lf\n", &dataset[index + dimensions - 1]) ) 
 			return -1;
-
-		//print_point(&dataset[index]);
-		index++;
+#ifdef DEBUG
+		print_point(&dataset[index], dimensions);
+#endif
+		index+=dimensions;
 	}
 	return size;
 }
@@ -90,10 +99,15 @@ int build_and_init_centroids(double** centroids_ptr, int k, int dimensions, doub
 	  printf("Memory allocation error!\n");
 	  return -1;
 	}
-	
-	for(i = 0; i < k*dimensions; i++){
-	  	j = rand() % size;
-	  	centroids[i] = dataset[j];
+	srand(time(NULL));
+	for(i = 0; i < k*dimensions; i+=dimensions){
+	  	j = (rand() % size) * dimensions;
+	  	for (int p = 0; p < dimensions; p++)
+		  	centroids[i + p] = dataset[j + p];
+#ifdef DEBUG
+		printf("picked: %d\n", j / dimensions);
+		print_point(&centroids[i], dimensions);
+#endif
 	}
 }
 
@@ -215,7 +229,8 @@ int main(int argc, char** argv) {
 	*  5. stop timing 
 	*  6. write results in output file (append mode, and then close it)
 	*  7. check nr_restarts and in case repeat from 3.
-	*  8. print some statistics  
+	*  8. print some statistics
+	*  9. cleanup memory  
 	*/
 
 
@@ -237,17 +252,29 @@ int main(int argc, char** argv) {
 	printf("rank: %d\n", rank);
 
 	// Load the datapoints from a shared file - using rank as offset
+#ifdef DEBUG
+	printf("building the datapoints\n");
+#endif
 	size = build_data_points(fp, &dataset, nr_dimensions, rank, nr_machines);
-	if( size < 0 ) 
+	if(size < 0) 
 		goto out;
 	fclose(fp);
+
 	// Let the root process initialize the centroids and send to the others
+#ifdef DEBUG
+	printf("building the centroids\n");
+#endif
 	if (rank == 0)
 		build_and_init_centroids(&centroids, nr_centroids, nr_dimensions, dataset, size);
       
 
-	MPI_Finalize();
 
 out:
+#ifdef DEBUG
+	printf("free memory\n");
+#endif	
+	free(dataset);
+	free(centroids);
+	MPI_Finalize();
 	return 0;
 }
