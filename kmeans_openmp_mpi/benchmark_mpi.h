@@ -1,0 +1,11 @@
+#ifndef BENCHMARK_MPI_H_INCLUDED
+#define BENCHMARK_MPI_H_INCLUDED
+
+#pragma once
+
+//long SIZE = 0;
+int NR_THREADS;
+int NR_CENTROIDS;
+int NR_DIMENSIONS;
+
+#endif // BENCHMARK_H_INCLUDED
