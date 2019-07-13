@@ -115,17 +115,53 @@ int init_centroids(double* centroids, int k, int dimensions, double* dataset, lo
 	}
 }
 
+void set_accumulators_to_zero(long* points_accumulator, double* coordinates_accumulator, int nr_centroids, int dimensions){
+
+	for(int i = 0; i < nr_centroids; i++){
+		points_accumulator[i] = 0;
+	}
+	for(int i = 0; i < nr_centroids * dimensions; i++){
+	  	coordinates_accumulator[i] = 0.0;
+	}
+}
+
+void assign_cluster(double* dataset, double* centroids, long* points_accumulator, double* coordinates_accumulator, int nr_points, int nr_centroids, int nr_dimensions){
+
+}
+
+void update_centroids(double* new_centroids, long* counter, int nr_centroids, int nr_dimensions){
+
+  	for(int i = 0; i < nr_centroids; i++){
+	  	for(int j = 0; j < nr_dimensions; j++){
+			new_centroids[i*nr_dimensions + j] /= counter[i];
+		}
+  	}  
+}
+
+double distance(double* v1, double* v2, int nr_dimensions){
+
+  	double norm = 0.0;
+	for(int i = 0; i < nr_dimensions; i++){
+	  norm += (v1[i] - v2[i]) * (v1[i] - v2[i]);
+	}
+	return norm;
+}
+
+void copy_centroids(double* src, double* dst, int nr_centroids, int nr_dimensions){
+
+  	for(int i = 0; i < nr_centroids * nr_dimensions; i++){
+	  	dst[i] = src[i];
+	}
+}
 
 void save_to_file(FILE* f_out, double* centroids, int nr_centroids, int dimensions){
 
 	int i, j;
 
 	for (i = 0; i < nr_centroids; i++){
-
 		for ( j = 0; j < dimensions - 1; j++){
 			 fprintf(f_out, "%lf, ", centroids[i*dimensions + j]); 			
 		}
-
 		fprintf(f_out, "%lf\n", centroids[i*dimensions + dimensions - 1]);
 	}
 
@@ -160,11 +196,13 @@ int main(int argc, char** argv) {
 	int rank = 0;
 	
 	FILE* fp, *f_out;
-	double* dataset = NULL;
-	double* old_centroids = NULL;
-	double* new_centroids = NULL;
-	int* points_per_centroid_accumulator = NULL;
-	double* centroids_coordinates_accumulator = NULL;
+	double* dataset = 					NULL;
+	double* centroids = 					NULL;
+	long* points_per_centroid_accumulator = 		NULL;
+	long* points_per_centroid_accumulator_master = 		NULL;
+	double* centroids_coordinates_accumulator = 		NULL;
+	double* centroids_coordinates_accumulator_master = 	NULL;
+
 	
 	struct timeval start, end;
 	struct timespec timeout;
@@ -283,15 +321,19 @@ int main(int argc, char** argv) {
 		goto out;
 	fclose(fp);
 
-	allocate_centroids(&new_centroids, nr_centroids, nr_dimensions);
-	allocate_centroids(&old_centroids, nr_centroids, nr_dimensions);
-
-	// Let the root process initialize the centroids and send them to the others
+	// Allocate memory for centroids and for accumulators
+	allocate_centroids(&centroids, nr_centroids, nr_dimensions);
+	points_per_centroid_accumulator = (long *)malloc(sizeof(long) * nr_centroids);
+	centroids_coordinates_accumulator = (double * )malloc(sizeof(double) * nr_centroids * nr_dimensions);
+	
+	// Root process initialize the centroids and allocate accumulators
 	if (rank == 0){
 #ifdef DEBUG
 	  	printf("[%d] - building the centroids\n", rank);
 #endif
-	  	init_centroids(new_centroids, nr_centroids, nr_dimensions, dataset, size / nr_machines, rank);
+	  	init_centroids(centroids, nr_centroids, nr_dimensions, dataset, size / nr_machines, rank);
+		points_per_centroid_accumulator_master = (long* )malloc(sizeof(long) * nr_centroids);
+		centroids_coordinates_accumulator_master = (double* )malloc(sizeof(double) * nr_centroids * nr_dimensions);
 	}
 
 	char name[80];
@@ -305,12 +347,36 @@ int main(int argc, char** argv) {
 
 	double norm = 1.0;
 	while( norm > MIN_NORM){
-		MPI_Bcast(new_centroids, nr_centroids*nr_dimensions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		norm = 0;
+
+	  	// Broadcast new centroids to all machines
+	  	MPI_Bcast(centroids, nr_centroids*nr_dimensions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+		// Initialize local accumulators to zero
+		set_accumulators_to_zero(points_per_centroid_accumulator, centroids_coordinates_accumulator, nr_centroids, nr_dimensions);
+
+		// Assign a cluster to each point in the local datset
+		assign_cluster(dataset, centroids, points_per_centroid_accumulator, centroids_coordinates_accumulator, size / nr_machines, nr_centroids, nr_dimensions);
+
+		// Reduce the local accumulators on the master node
+		MPI_Reduce(points_per_centroid_accumulator, points_per_centroid_accumulator_master, nr_centroids, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Reduce(centroids_coordinates_accumulator, centroids_coordinates_accumulator_master, nr_centroids * nr_dimensions, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+		// Compute the new centroids
+		if(rank == 0){
+			update_centroids(centroids_coordinates_accumulator_master, points_per_centroid_accumulator_master, nr_centroids, nr_dimensions);
+		
+			// Compute the norm 
+			norm = distance(centroids, centroids_coordinates_accumulator_master, nr_centroids * nr_dimensions);
+
+			// Copy new centroids in proper variable
+			copy_centroids(centroids_coordinates_accumulator_master, centroids, nr_centroids, nr_dimensions);
+		}
+
+		// Broadcast the norm
+		MPI_Bcast(&norm, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	}
 	
 	if (rank == 0){
-	  
 		gettimeofday(&end, NULL);
 		duration = (end.tv_sec * 1000 + end.tv_usec / 1000) - (start.tv_sec * 1000 + start.tv_usec / 1000);
 		printf("duration: %d ms\n", duration);		
@@ -319,10 +385,10 @@ int main(int argc, char** argv) {
 		
 		for( i = 0; i < nr_centroids * nr_dimensions; i+=nr_dimensions){
 			printf("%d: ", i / nr_dimensions);
-			print_point(&new_centroids[i], nr_dimensions);
+			print_point(&centroids[i], nr_dimensions);
 		}
 
-		save_to_file(f_out, new_centroids, nr_centroids, nr_dimensions);
+		save_to_file(f_out, centroids, nr_centroids, nr_dimensions);
 	}
 	
 out:
@@ -330,9 +396,10 @@ out:
 	printf("[%d] - free memory\n", rank);
 #endif
 	if (rank == 0){
-		free(old_centroids);
-		free(new_centroids);
+	 	free(points_per_centroid_accumulator_master);
+		free(centroids_coordinates_accumulator_master);
 	}
+	free(centroids);
 	free(points_per_centroid_accumulator);
 	free(centroids_coordinates_accumulator);
 	free(dataset);
