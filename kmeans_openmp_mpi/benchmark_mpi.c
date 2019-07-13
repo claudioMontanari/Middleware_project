@@ -166,7 +166,8 @@ void update_centroids(double* new_centroids, long* counter, int nr_centroids, in
 
   	for(int i = 0; i < nr_centroids; i++){
 	  	for(int j = 0; j < nr_dimensions; j++){
-			new_centroids[i*nr_dimensions + j] /= counter[i];
+			if(new_centroids[i * nr_dimensions + j] != 0)
+				new_centroids[i * nr_dimensions + j] /= counter[i];
 		}
   	}  
 }
@@ -389,12 +390,24 @@ int main(int argc, char** argv) {
 
 		// Compute the new centroids
 		if(rank == 0){
-			update_centroids(centroids_coordinates_accumulator_master, points_per_centroid_accumulator_master, nr_centroids, nr_dimensions);
+			for(int j = 0; j < nr_centroids; j++){
+				printf("accumulator centroid %d: ", j);
+				print_point(&centroids_coordinates_accumulator_master[j * nr_dimensions], nr_dimensions);				  
+			}
+
+		  	update_centroids(centroids_coordinates_accumulator_master, points_per_centroid_accumulator_master, nr_centroids, nr_dimensions);
 		
 			// Compute the norm 
 			norm = distance(centroids, centroids_coordinates_accumulator_master, nr_centroids * nr_dimensions);
 #ifdef DEBUG
-			printf("iteration %ld norm: %lf", iterations, norm);
+			printf("iteration %ld norm: %lf\n", iterations, norm);
+			for(int j = 0; j < nr_centroids; j++){
+				printf("old centroid %d: ", j);
+				print_point(&centroids[j * nr_dimensions], nr_dimensions);
+				printf("new centroid %d: ", j);
+				print_point(&centroids_coordinates_accumulator_master[j * nr_dimensions], nr_dimensions);
+				  
+			}
 #endif
 			// Copy new centroids in proper variable
 			copy_centroids(centroids_coordinates_accumulator_master, centroids, nr_centroids, nr_dimensions);
