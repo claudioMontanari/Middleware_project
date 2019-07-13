@@ -47,7 +47,7 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 	long size = 0, points_per_machine;
 
 
-	if ( !fscanf(fp, "%ld", &size) ){
+	if ( !fscanf(fp, "%ld\n", &size) ){
 		printf("Error while parsing the input file\n");
 		return -1;
 	}
@@ -66,7 +66,7 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 	}
 
 	long index = 0;
-	long offset = points_per_machine * dimensions * rank;			//TODO: this works as long as the rank starts form 0, otherwise needs (rank-1)
+	long offset = points_per_machine * rank;			//TODO: this works as long as the rank starts form 0, otherwise needs (rank-1)
 	char buffer[80];
 	for(int i = 0; i < offset; i++)
 		fgets(buffer, 80, fp);
@@ -81,6 +81,7 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 		if( !fscanf(fp, "%lf\n", &dataset[index + dimensions - 1]) ) 
 			return -1;
 #ifdef DEBUG
+		printf("[%d] - ", rank);
 		print_point(&dataset[index], dimensions);
 #endif
 		index+=dimensions;
@@ -88,7 +89,7 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 	return size;
 }
 
-int build_and_init_centroids(double** centroids_ptr, int k, int dimensions, double* dataset, long size){
+int build_and_init_centroids(double** centroids_ptr, int k, int dimensions, double* dataset, long size, int rank){
 
   	int i, j;
 
@@ -105,7 +106,7 @@ int build_and_init_centroids(double** centroids_ptr, int k, int dimensions, doub
 	  	for (int p = 0; p < dimensions; p++)
 		  	centroids[i + p] = dataset[j + p];
 #ifdef DEBUG
-		printf("picked: %d\n", j / dimensions);
+		printf("[%d] - picked: %d\n", rank, j / dimensions);
 		print_point(&centroids[i], dimensions);
 #endif
 	}
@@ -253,7 +254,7 @@ int main(int argc, char** argv) {
 
 	// Load the datapoints from a shared file - using rank as offset
 #ifdef DEBUG
-	printf("building the datapoints\n");
+	printf("[%d] - building the datapoints\n", rank);
 #endif
 	size = build_data_points(fp, &dataset, nr_dimensions, rank, nr_machines);
 	if(size < 0) 
@@ -261,20 +262,33 @@ int main(int argc, char** argv) {
 	fclose(fp);
 
 	// Let the root process initialize the centroids and send to the others
+	if (rank == 0){
 #ifdef DEBUG
-	printf("building the centroids\n");
+	  printf("[%d] - building the centroids\n", rank);
 #endif
-	if (rank == 0)
-		build_and_init_centroids(&centroids, nr_centroids, nr_dimensions, dataset, size);
-      
+	  build_and_init_centroids(&centroids, nr_centroids, nr_dimensions, dataset, size / nr_machines, rank);
+	}
 
+	char name[80];
+	int name_len;
+	MPI_Get_processor_name(name, &name_len);
+	printf("[%d] - processor name %s\n", rank, name);
+	  
+	volatile int x = 0;
+	i = 0;
+	while( x != 123456 && i < 1000000){
+	  x = rand() % 1000000;
+	  i++;
+	}
 
 out:
 #ifdef DEBUG
-	printf("free memory\n");
-#endif	
+	printf("[%d] - free memory\n", rank);
+#endif
+	if (rank == 0)
+		free(centroids);
 	free(dataset);
-	free(centroids);
 	MPI_Finalize();
+
 	return 0;
 }
