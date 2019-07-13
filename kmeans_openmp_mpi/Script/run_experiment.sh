@@ -7,8 +7,20 @@
 # kmeans_openmp_mpi directory.
 
 run_exp(){
-    cd /users/claudio/experiment
-    mpirun -n 4 -mca btl ^openib --host $(cat ./slaves | tr '\n' ',' )  './benchmark' -o $OUTPUT_FILE $EXP_PARAMETERS
+	cd /users/claudio/experiment
+	mpirun -n 4 -mca btl ^openib --host $(cat ./slaves | tr '\n' ',' )  './benchmark' -o $OUTPUT_FILE $EXP_PARAMETERS
+	if [ $PLOT -eq 'true' ]; then 
+		echo 'plotting resulting clustering'
+		gnuplot -e "
+set terminal 'pdfcairo';
+set output './Pictures/output.pdf';
+set ylabel 'y';
+set xlabel 'x';
+set datafile separator ","
+plot '${INPUT_FILE}' using 1:2 with dot title 'datapoints', \
+     '${OUTPUT_FILE}' using 1:2 title 'centroids';
+"
+	fi
 }
 
 EXPERIMENT=$1
@@ -18,7 +30,7 @@ read -a EXP_PARAMETERS <<< $4
 EXP_PARAMETERS='-c 3 -d 3 -t 4'
 echo "parameters: $EXP_PARAMETERS"
 
-
+PLOT='false'
 REMOTE_PATH='~/experiment/'
 STARTING_PATH=$(pwd)
 
@@ -34,6 +46,7 @@ fi
 
 echo 'Copying the files into the FS of all machines'
 parallel-ssh -i -h ./slaves mkdir -p $REMOTE_PATH'Data'
+parallel-ssh -i -h ./slaves mkdir -p $REMOTE_PATH'Pictures'
 for i in `seq 0 3`; do
 	scp ./slaves node-$i:$REMOTE_PATH
 	scp $EXPERIMENT node-$i:$REMOTE_PATH
@@ -44,7 +57,7 @@ done
 echo 'Compiling the program'
 parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o benchmark $EXPERIMENT -DDEBUG;"
 
-echo 'Running the experiment'
+echo ' =========================== Running the experiment =========================== '
 run_exp
 
 exit
