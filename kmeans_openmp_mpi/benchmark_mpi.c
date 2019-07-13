@@ -20,6 +20,7 @@
 #define DEFAULT_RESTARTS   	0
 #define MIN_NORM		0.000000001
 
+
 void print_args(void)
 {
 	printf("Kmeans benchmark:\n");
@@ -34,6 +35,7 @@ void print_args(void)
 	printf("  -r: number of restarts (default %d)\n", DEFAULT_RESTARTS);
 }
 
+
 void print_point(double* point, int dimensions){
   	int i;
   	for(i = 0; i < dimensions - 1; i++){
@@ -41,6 +43,7 @@ void print_point(double* point, int dimensions){
 	}
 	printf("%lf\n", point[i]);
 }
+
 
 long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, const int rank, const int group_size){
 	
@@ -115,6 +118,7 @@ int init_centroids(double* centroids, int k, int dimensions, double* dataset, lo
 	}
 }
 
+
 void set_accumulators_to_zero(long* points_accumulator, double* coordinates_accumulator, int nr_centroids, int dimensions){
 
 	for(int i = 0; i < nr_centroids; i++){
@@ -125,18 +129,6 @@ void set_accumulators_to_zero(long* points_accumulator, double* coordinates_accu
 	}
 }
 
-void assign_cluster(double* dataset, double* centroids, long* points_accumulator, double* coordinates_accumulator, int nr_points, int nr_centroids, int nr_dimensions){
-
-}
-
-void update_centroids(double* new_centroids, long* counter, int nr_centroids, int nr_dimensions){
-
-  	for(int i = 0; i < nr_centroids; i++){
-	  	for(int j = 0; j < nr_dimensions; j++){
-			new_centroids[i*nr_dimensions + j] /= counter[i];
-		}
-  	}  
-}
 
 double distance(double* v1, double* v2, int nr_dimensions){
 
@@ -147,12 +139,46 @@ double distance(double* v1, double* v2, int nr_dimensions){
 	return norm;
 }
 
+
+void assign_cluster(double* dataset, double* centroids, long* points_accumulator, double* coordinates_accumulator, long nr_points, int nr_centroids, int nr_dimensions){
+
+	double d_min, d_temp;
+	int closest_centroid = 0;
+  	for(long i = 0; i < nr_points; i++){
+	  	d_min = distance(&dataset[i * nr_dimensions], &centroids[0], nr_dimensions);
+		for(int j = 1; j < nr_centroids; j++){
+			d_temp = distance(&dataset[i * nr_dimensions], &centroids[j*nr_dimensions], nr_dimensions);
+			if(d_temp < d_min){
+				closest_centroid = j;
+				d_min = d_temp;
+			}
+		}
+		points_accumulator[closest_centroid]++;
+		for(int j = 0; j < nr_dimensions; j++){
+			coordinates_accumulator[closest_centroid * nr_dimensions + j] += centroids[closest_centroid * nr_dimensions + j];
+		}
+  	}
+  
+}
+
+
+void update_centroids(double* new_centroids, long* counter, int nr_centroids, int nr_dimensions){
+
+  	for(int i = 0; i < nr_centroids; i++){
+	  	for(int j = 0; j < nr_dimensions; j++){
+			new_centroids[i*nr_dimensions + j] /= counter[i];
+		}
+  	}  
+}
+
+
 void copy_centroids(double* src, double* dst, int nr_centroids, int nr_dimensions){
 
   	for(int i = 0; i < nr_centroids * nr_dimensions; i++){
 	  	dst[i] = src[i];
 	}
 }
+
 
 void save_to_file(FILE* f_out, double* centroids, int nr_centroids, int dimensions){
 
@@ -346,7 +372,7 @@ int main(int argc, char** argv) {
 	}
 
 	double norm = 1.0;
-	while( norm > MIN_NORM){
+	while( norm > MIN_NORM && iterations < 10){
 
 	  	// Broadcast new centroids to all machines
 	  	MPI_Bcast(centroids, nr_centroids*nr_dimensions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -367,13 +393,18 @@ int main(int argc, char** argv) {
 		
 			// Compute the norm 
 			norm = distance(centroids, centroids_coordinates_accumulator_master, nr_centroids * nr_dimensions);
-
+#ifdef DEBUG
+			printf("iteration %ld norm: %lf", iterations, norm);
+#endif
 			// Copy new centroids in proper variable
 			copy_centroids(centroids_coordinates_accumulator_master, centroids, nr_centroids, nr_dimensions);
+
 		}
 
 		// Broadcast the norm
 		MPI_Bcast(&norm, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+		iterations++;
 	}
 	
 	if (rank == 0){
