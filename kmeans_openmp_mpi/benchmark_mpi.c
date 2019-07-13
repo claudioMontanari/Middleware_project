@@ -36,12 +36,12 @@ void print_args(void)
 }
 
 
-void print_point(double* point, int dimensions){
+void print_point(double* point, int nr_dimensions){
   	int i;
-  	for(i = 0; i < dimensions - 1; i++){
+  	for(i = 0; i < nr_dimensions - 1; i++){
 		printf("%lf ", point[i]);
 	}
-	printf("%lf\n", point[i]);
+	printf("%lf\n", point[nr_dimensions - 1]);
 }
 
 
@@ -145,6 +145,7 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 	double d_min, d_temp;
 	int closest_centroid = 0;
   	for(long i = 0; i < nr_points; i++){
+	  	closest_centroid = 0;
 	  	d_min = distance(&dataset[i * nr_dimensions], &centroids[0], nr_dimensions);
 		for(int j = 1; j < nr_centroids; j++){
 			d_temp = distance(&dataset[i * nr_dimensions], &centroids[j*nr_dimensions], nr_dimensions);
@@ -153,9 +154,14 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 				d_min = d_temp;
 			}
 		}
+#ifdef DEBUG
+		printf("%d has ", closest_centroid);
+		print_point(&dataset[i * nr_dimensions], nr_dimensions);
+#endif		
+
 		points_accumulator[closest_centroid]++;
 		for(int j = 0; j < nr_dimensions; j++){
-			coordinates_accumulator[closest_centroid * nr_dimensions + j] += centroids[closest_centroid * nr_dimensions + j];
+			coordinates_accumulator[closest_centroid * nr_dimensions + j] += dataset[i * nr_dimensions + j];
 		}
   	}
   
@@ -357,6 +363,7 @@ int main(int argc, char** argv) {
 	if (rank == 0){
 #ifdef DEBUG
 	  	printf("[%d] - building the centroids\n", rank);
+		printf("[0] - testing norm: %lf\n", distance(&dataset[0], &dataset[0], nr_dimensions));
 #endif
 	  	init_centroids(centroids, nr_centroids, nr_dimensions, dataset, size / nr_machines, rank);
 		points_per_centroid_accumulator_master = (long* )malloc(sizeof(long) * nr_centroids);
@@ -406,7 +413,7 @@ int main(int argc, char** argv) {
 				print_point(&centroids[j * nr_dimensions], nr_dimensions);
 				printf("new centroid %d: ", j);
 				print_point(&centroids_coordinates_accumulator_master[j * nr_dimensions], nr_dimensions);
-				  
+				printf("weight: %ld\n", points_per_centroid_accumulator_master[j]);  
 			}
 #endif
 			// Copy new centroids in proper variable
