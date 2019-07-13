@@ -18,7 +18,7 @@
 #define DEFAULT_INPUT   	"./Data/input.csv"
 #define DEFAULT_OUTPUT 		"./Data/output.csv"
 #define DEFAULT_RESTARTS   	0
-
+#define MIN_NORM		0.000000001
 
 void print_args(void)
 {
@@ -89,17 +89,20 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 	return size;
 }
 
-int build_and_init_centroids(double** centroids_ptr, int k, int dimensions, double* dataset, long size, int rank){
+int allocate_centroids(double** centroids_ptr, int nr_centroids, int nr_dimensions){
+  	*centroids_ptr = (double*)(malloc(sizeof(double) * nr_centroids * nr_dimensions));
+	if(centroids_ptr == NULL){
+	  	printf("Memory allocation error!\n");
+	  	return -1;
+	}
+	double * centroids = *centroids_ptr;
+	for (int i = 0; i < nr_centroids * nr_dimensions; i++)
+	 	centroids[i] = 0;
+}
+
+int init_centroids(double* centroids, int k, int dimensions, double* dataset, long size, int rank){
 
   	int i, j;
-
-	*centroids_ptr = (double* ) malloc(sizeof(double) * k * dimensions);
-	double* centroids = *centroids_ptr;
-
-	if( dataset == NULL ) {
-	  printf("Memory allocation error!\n");
-	  return -1;
-	}
 	srand(time(NULL));
 	for(i = 0; i < k*dimensions; i+=dimensions){
 	  	j = (rand() % size) * dimensions;
@@ -110,6 +113,22 @@ int build_and_init_centroids(double** centroids_ptr, int k, int dimensions, doub
 		print_point(&centroids[i], dimensions);
 #endif
 	}
+}
+
+
+void save_to_file(FILE* f_out, double* centroids, int nr_centroids, int dimensions){
+
+	int i, j;
+
+	for (i = 0; i < nr_centroids; i++){
+
+		for ( j = 0; j < dimensions - 1; j++){
+			 fprintf(f_out, "%lf, ", centroids[i*dimensions + j]); 			
+		}
+
+		fprintf(f_out, "%lf\n", centroids[i*dimensions + dimensions - 1]);
+	}
+
 }
 
 
@@ -142,8 +161,11 @@ int main(int argc, char** argv) {
 	
 	FILE* fp, *f_out;
 	double* dataset = NULL;
-	double* centroids = NULL;
-
+	double* old_centroids = NULL;
+	double* new_centroids = NULL;
+	int* points_per_centroid_accumulator = NULL;
+	double* centroids_coordinates_accumulator = NULL;
+	
 	struct timeval start, end;
 	struct timespec timeout;
 
@@ -261,32 +283,58 @@ int main(int argc, char** argv) {
 		goto out;
 	fclose(fp);
 
-	// Let the root process initialize the centroids and send to the others
+	allocate_centroids(&new_centroids, nr_centroids, nr_dimensions);
+	allocate_centroids(&old_centroids, nr_centroids, nr_dimensions);
+
+	// Let the root process initialize the centroids and send them to the others
 	if (rank == 0){
 #ifdef DEBUG
-	  printf("[%d] - building the centroids\n", rank);
+	  	printf("[%d] - building the centroids\n", rank);
 #endif
-	  build_and_init_centroids(&centroids, nr_centroids, nr_dimensions, dataset, size / nr_machines, rank);
+	  	init_centroids(new_centroids, nr_centroids, nr_dimensions, dataset, size / nr_machines, rank);
 	}
 
 	char name[80];
 	int name_len;
 	MPI_Get_processor_name(name, &name_len);
 	printf("[%d] - processor name %s\n", rank, name);
-	  
-	volatile int x = 0;
-	i = 0;
-	while( x != 123456 && i < 1000000){
-	  x = rand() % 1000000;
-	  i++;
+
+	if(rank == 0){
+		gettimeofday(&start, NULL);
 	}
 
+	double norm = 1.0;
+	while( norm > MIN_NORM){
+		MPI_Bcast(new_centroids, nr_centroids*nr_dimensions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		norm = 0;
+	}
+	
+	if (rank == 0){
+	  
+		gettimeofday(&end, NULL);
+		duration = (end.tv_sec * 1000 + end.tv_usec / 1000) - (start.tv_sec * 1000 + start.tv_usec / 1000);
+		printf("duration: %d ms\n", duration);		
+		printf("iterations: %ld\n", iterations);
+		printf("centroids: \n");
+		
+		for( i = 0; i < nr_centroids * nr_dimensions; i+=nr_dimensions){
+			printf("%d: ", i / nr_dimensions);
+			print_point(&new_centroids[i], nr_dimensions);
+		}
+
+		save_to_file(f_out, new_centroids, nr_centroids, nr_dimensions);
+	}
+	
 out:
 #ifdef DEBUG
 	printf("[%d] - free memory\n", rank);
 #endif
-	if (rank == 0)
-		free(centroids);
+	if (rank == 0){
+		free(old_centroids);
+		free(new_centroids);
+	}
+	free(points_per_centroid_accumulator);
+	free(centroids_coordinates_accumulator);
 	free(dataset);
 	MPI_Finalize();
 

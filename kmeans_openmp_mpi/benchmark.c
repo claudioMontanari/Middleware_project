@@ -276,7 +276,6 @@ int main(int argc, char *argv[])
 			goto out;
 		}
 
-		gettimeofday(&start, NULL);
 
 		//nanosleep(&timeout, NULL);
 		//data.stop = 1;
