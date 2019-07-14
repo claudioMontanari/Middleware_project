@@ -122,6 +122,22 @@ int init_centroids(double* centroids, int k, int nr_dimensions, double* dataset,
 }
 
 
+void copy_int_long_vector(long* src, long* dst, int nr_points, int nr_dimensions){
+
+  	for(int i = 0; i < nr_points * nr_dimensions; i++){
+	  	dst[i] = src[i];
+	}
+}
+
+
+void copy_vector(double* src, double* dst, int nr_points, int nr_dimensions){
+
+  	for(int i = 0; i < nr_points * nr_dimensions; i++){
+	  	dst[i] = src[i];
+	}
+}
+
+
 void set_accumulators_to_zero(long* points_accumulator, double* coordinates_accumulator, int nr_centroids, int dimensions){
 
 	for(int i = 0; i < nr_centroids; i++){
@@ -153,9 +169,36 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 	// TODO:
 	// - change accumulators to thread local one
 	// - copy thread local accumulators values into the global one after for-loop
-	
-	//#pragma omp parallel for num_threads(2) schedule(static) reduction(+: points_accumulator_thread[0:nr_centroids], coordinates_accumulator_thread[0:nr_centroids*nr_dimensions]) private(d_min, d_temp, closest_centroid, i, j) shared(dataset, centroids, nr_points, nr_centroids, nr_dimensions)
+
+	/*
+	#pragma omp parallel for num_threads(2) schedule(static) reduction(+: points_accumulator_thread[0:nr_centroids], coordinates_accumulator_thread[0:nr_centroids*nr_dimensions]) private(d_min, d_temp, closest_centroid) shared(dataset, centroids, nr_points, nr_centroids, nr_dimensions)
   	for(long i = 0; i < nr_points; i++){
+	  	closest_centroid = 0;
+	  	d_min = distance(&dataset[i * nr_dimensions], &centroids[0], nr_dimensions);
+		for(int j = 1; j < nr_centroids; j++){
+			d_temp = distance(&dataset[i * nr_dimensions], &centroids[j*nr_dimensions], nr_dimensions);
+			if(d_temp < d_min){
+				closest_centroid = j;
+				d_min = d_temp;
+			}
+		}
+#ifdef DEBUG
+		printf("%d has ", closest_centroid);
+		print_point(&dataset[i * nr_dimensions], nr_dimensions);
+#endif		
+
+		points_accumulator_thread[closest_centroid]++;
+		for(int j = 0; j < nr_dimensions; j++){
+			coordinates_accumulator_thread[closest_centroid * nr_dimensions + j] += dataset[i * nr_dimensions + j];
+		}
+  	}
+
+	copy_int_long_vector(points_accumulator_thread, points_accumulator, nr_centroids, 1);
+	copy_vector(coordinates_accumulator_thread, coordinates_accumulator, nr_centroids, nr_dimensions);
+	*/
+	
+	// ####### Old version without using OpenMP ####### [TODO: add ifdef conditions so that can decide at compile time which version to use]
+	for(long i = 0; i < nr_points; i++){
 	  	closest_centroid = 0;
 	  	d_min = distance(&dataset[i * nr_dimensions], &centroids[0], nr_dimensions);
 		for(int j = 1; j < nr_centroids; j++){
@@ -175,7 +218,7 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 			coordinates_accumulator[closest_centroid * nr_dimensions + j] += dataset[i * nr_dimensions + j];
 		}
   	}
-  
+	
 }
 
 
@@ -187,14 +230,6 @@ void update_centroids(double* new_centroids, long* counter, int nr_centroids, in
 				new_centroids[i * nr_dimensions + j] /= counter[i];
 		}
   	}  
-}
-
-
-void copy_vector(double* src, double* dst, int nr_points, int nr_dimensions){
-
-  	for(int i = 0; i < nr_points * nr_dimensions; i++){
-	  	dst[i] = src[i];
-	}
 }
 
 
