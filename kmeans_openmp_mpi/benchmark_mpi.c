@@ -51,7 +51,7 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 	long size = 0, points_per_machine;
 
 
-	if ( !fscanf(fp, "%ld\n", &size) ){
+	if ( !fscanf(fp, "# %ld\n", &size) ){
 		printf("Error while parsing the input file\n");
 		return -1;
 	}
