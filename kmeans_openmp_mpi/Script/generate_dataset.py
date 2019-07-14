@@ -1,12 +1,11 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
-mu_list = [[5, 5], [5, 10], [10, 10], [10, 5]]
-sigma = [[1, 0], [0, 1]]
-nr_points_per_centroid = 5000
-nr_points = nr_points_per_centroid * len(mu_list)
-
+mu_list = [[50, 50], [50, 100], [100, 100], [100, 50], [100, 200], [200, 100]]
+sigma = [[5, 0], [0, 50]]
+nr_points_per_centroid = 50000
+nr_centroids = len(mu_list)
+nr_points = nr_points_per_centroid * nr_centroids
 centroids = [[nr_points, nr_points]]
 
 for mu in mu_list:
@@ -17,7 +16,9 @@ for mu in mu_list:
     #print(*centroids, sep=", ")
 
 
-plt.scatter(centroids[1:, 0], centroids[1:, 1])
-plt.show(block=True)
-np.savetxt("output.csv", centroids[1:], delimiter=", ", fmt="%.8f", header=str(nr_points))
-
+#plt.scatter(centroids[1:, 0], centroids[1:, 1])
+#plt.show(block=True)
+np.random.shuffle(centroids[1:])
+output_file = "../Data/input_dim_2_k_"+str(nr_centroids)+"_"+str(nr_points)+"pts.csv"
+np.savetxt(output_file, centroids[1:], delimiter=", ", fmt="%.8f", header=str(nr_points))
+print("data saved at: " + output_file)
