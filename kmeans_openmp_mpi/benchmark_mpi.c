@@ -58,7 +58,7 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 		printf("Size value must be a positive integer! \n");
 		return -1;
 	}
-	points_per_machine = size / group_size;
+	points_per_machine = (rank == 0) ? size : size / group_size;
 	  
 	*dataset_ptr = (double*) malloc(sizeof(double) * points_per_machine * dimensions);
 
@@ -70,9 +70,11 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 
 	long index = 0;
 	long offset = points_per_machine * rank;
-	char buffer[80];
+	char buffer[180];
+        
+	
 	for(int i = 0; i < offset; i++)
-		fgets(buffer, 80, fp);
+		fgets(buffer, 180, fp);
 	
 	while( !feof(fp) && index < (points_per_machine * dimensions) ){
 
@@ -103,17 +105,17 @@ int allocate_centroids(double** centroids_ptr, int nr_centroids, int nr_dimensio
 	 	centroids[i] = 0;
 }
 
-int init_centroids(double* centroids, int k, int dimensions, double* dataset, long size, int rank){
+int init_centroids(double* centroids, int k, int nr_dimensions, double* dataset, long size, int rank){
 
   	int i, j;
 	srand(time(NULL));
-	for(i = 0; i < k*dimensions; i+=dimensions){
-	  	j = (rand() % size) * dimensions;
-	  	for (int p = 0; p < dimensions; p++)
+	for(i = 0; i < k*nr_dimensions; i+=nr_dimensions){
+	  	j = (rand() % size) * nr_dimensions;
+	  	for (int p = 0; p < nr_dimensions; p++)
 		  	centroids[i + p] = dataset[j + p];
 #ifdef DEBUG
-		printf("[%d] - picked: %d\n", rank, j / dimensions);
-		print_point(&centroids[i], dimensions);
+		printf("[%d] - picked: %d\n", rank, j / nr_dimensions);
+		print_point(&centroids[i], nr_dimensions);
 #endif
 	}
 }
@@ -365,7 +367,7 @@ int main(int argc, char** argv) {
 	  	printf("[%d] - building the centroids\n", rank);
 		printf("[0] - testing norm: %lf\n", distance(&dataset[0], &dataset[0], nr_dimensions));
 #endif
-	  	init_centroids(centroids, nr_centroids, nr_dimensions, dataset, size / nr_machines, rank);
+	  	init_centroids(centroids, nr_centroids, nr_dimensions, dataset, size, rank);
 		points_per_centroid_accumulator_master = (long* )malloc(sizeof(long) * nr_centroids);
 		centroids_coordinates_accumulator_master = (double* )malloc(sizeof(double) * nr_centroids * nr_dimensions);
 	}
