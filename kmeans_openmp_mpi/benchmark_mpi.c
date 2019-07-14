@@ -69,7 +69,7 @@ long build_data_points(FILE* fp, double** dataset_ptr, const int dimensions, con
 	}
 
 	long index = 0;
-	long offset = points_per_machine * rank;			//TODO: this works as long as the rank starts form 0, otherwise needs (rank-1)
+	long offset = points_per_machine * rank;
 	char buffer[80];
 	for(int i = 0; i < offset; i++)
 		fgets(buffer, 80, fp);
@@ -397,11 +397,13 @@ int main(int argc, char** argv) {
 
 		// Compute the new centroids
 		if(rank == 0){
-			for(int j = 0; j < nr_centroids; j++){
+#ifdef DEBUG
+		  	for(int j = 0; j < nr_centroids; j++){
 				printf("accumulator centroid %d: ", j);
 				print_point(&centroids_coordinates_accumulator_master[j * nr_dimensions], nr_dimensions);				  
 			}
-
+#endif
+			
 		  	update_centroids(centroids_coordinates_accumulator_master, points_per_centroid_accumulator_master, nr_centroids, nr_dimensions);
 		
 			// Compute the norm 

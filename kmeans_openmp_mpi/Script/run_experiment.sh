@@ -8,15 +8,15 @@
 
 run_exp(){
 	cd /users/claudio/experiment
-	mpirun -n 4 -mca btl ^openib --host $(cat ./slaves | tr '\n' ',' )  './benchmark' -o $OUTPUT_FILE $EXP_PARAMETERS
-	if [ $PLOT -eq 'true' ]; then 
+	mpirun -n 4 -mca btl ^openib --host $(cat ./slaves | tr '\n' ',' )  './benchmark' -i $INPUT_FILE -o $OUTPUT_FILE ${EXP_PARAMETERS[@]}
+	if [ "$PLOT" = "true" ]; then 
 		echo 'plotting resulting clustering'
 		gnuplot -e "
 set terminal 'pdfcairo';
-set output './Pictures/output.pdf';
+set output './Pictures/${OUTPUT_FILE%.csv}.pdf';
 set ylabel 'y';
 set xlabel 'x';
-set datafile separator ","
+set datafile separator ',';
 plot '${INPUT_FILE}' using 1:2 with dot title 'datapoints', \
      '${OUTPUT_FILE}' using 1:2 title 'centroids';
 "
@@ -27,10 +27,10 @@ EXPERIMENT=$1
 INPUT_FILE=$2
 OUTPUT_FILE=$3
 read -a EXP_PARAMETERS <<< $4
-EXP_PARAMETERS='-c 3 -d 3 -t 4'
-echo "parameters: $EXP_PARAMETERS"
+#EXP_PARAMETERS='-c 100 -d 2 -t 4'
+echo "parameters: ${EXP_PARAMETERS[@]}"
 
-PLOT='false'
+PLOT='true'
 REMOTE_PATH='~/experiment/'
 STARTING_PATH=$(pwd)
 
@@ -55,7 +55,7 @@ for i in `seq 0 3`; do
 done
 
 echo 'Compiling the program'
-parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o benchmark $EXPERIMENT -DDEBUG;"
+parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o benchmark $EXPERIMENT;"
 
 echo ' =========================== Running the experiment =========================== '
 run_exp
