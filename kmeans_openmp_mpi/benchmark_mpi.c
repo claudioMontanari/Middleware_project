@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <mpi.h>
 #include <assert.h>
+#include <omp.h>
 
 #include "benchmark_mpi.h"
 
@@ -146,6 +147,14 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 
 	double d_min, d_temp;
 	int closest_centroid = 0;
+	long points_accumulator_thread [nr_centroids];
+	double coordinates_accumulator_thread [nr_centroids * nr_dimensions];
+
+	// TODO:
+	// - change accumulators to thread local one
+	// - copy thread local accumulators values into the global one after for-loop
+	
+	//#pragma omp parallel for num_threads(2) schedule(static) reduction(+: points_accumulator_thread[0:nr_centroids], coordinates_accumulator_thread[0:nr_centroids*nr_dimensions]) private(d_min, d_temp, closest_centroid, i, j) shared(dataset, centroids, nr_points, nr_centroids, nr_dimensions)
   	for(long i = 0; i < nr_points; i++){
 	  	closest_centroid = 0;
 	  	d_min = distance(&dataset[i * nr_dimensions], &centroids[0], nr_dimensions);
@@ -181,9 +190,9 @@ void update_centroids(double* new_centroids, long* counter, int nr_centroids, in
 }
 
 
-void copy_centroids(double* src, double* dst, int nr_centroids, int nr_dimensions){
+void copy_vector(double* src, double* dst, int nr_points, int nr_dimensions){
 
-  	for(int i = 0; i < nr_centroids * nr_dimensions; i++){
+  	for(int i = 0; i < nr_points * nr_dimensions; i++){
 	  	dst[i] = src[i];
 	}
 }
@@ -421,7 +430,7 @@ int main(int argc, char** argv) {
 			}
 #endif
 			// Copy new centroids in proper variable
-			copy_centroids(centroids_coordinates_accumulator_master, centroids, nr_centroids, nr_dimensions);
+			copy_vector(centroids_coordinates_accumulator_master, centroids, nr_centroids, nr_dimensions);
 
 		}
 

@@ -55,6 +55,7 @@ for i in `seq 0 3`; do
 done
 
 echo 'Compiling the program'
+# TODO: substitute with a proper call to the Makefile
 parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o benchmark $EXPERIMENT;"
 
 echo ' =========================== Running the experiment =========================== '
