@@ -4,34 +4,24 @@ LD := gcc
 GCC := gcc
 GPP := g++
 
+MPICC := mpicc
+
 ROOT ?= ./
 
 MAKE := make
 
 CFLAGS += -g -O3 -mavx2 -Wall $(LDLIB) -Winline -fopenmp
 
-LDFLAGS += -lm -lpthread 
+LDFLAGS += -lm -fopenmp
 
 .PHONY: all clean
 
-BINS = benchmark test
+BINS = kmeans test
 
 all: $(BINS)
 
-datapoint.o: datapoint.c 
-	$(GCC) $(CFLAGS) -c -o $@ $<
-
-kmeans.o: kmeans.c 
-	$(GCC) $(CFLAGS) -c -o $@ $<
-
-benchmark.o: benchmark.c
-	$(GCC) $(CFLAGS) -c -o $@ $<
-
-benchmark: benchmark.o kmeans.o datapoint.o
-	$(GPP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-test: test.c kmeans.o datapoint.o
-	$(GPP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+kmeans: benchmark_mpi.c benchmark_mpi.h
+	$(MPICC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 report.pdf: report.tex
 	pdflatex report.tex

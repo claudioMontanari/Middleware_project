@@ -104,9 +104,10 @@ int allocate_centroids(double** centroids_ptr, int nr_centroids, int nr_dimensio
 	double * centroids = *centroids_ptr;
 	for (int i = 0; i < nr_centroids * nr_dimensions; i++)
 	 	centroids[i] = 0;
+	return 0;
 }
 
-int init_centroids(double* centroids, int k, int nr_dimensions, double* dataset, long size, int rank){
+void init_centroids(double* centroids, int k, int nr_dimensions, double* dataset, long size, int rank){
 
   	int i, j;
 	srand(time(NULL));
@@ -279,7 +280,7 @@ int main(int argc, char** argv) {
 	};
 
 
-	int c, i, j;
+	int c, i;
 	long size = 0, iterations = 0;
 	int duration = 					DEFAULT_DURATION;
 	int nr_threads = 				DEFAULT_NTHREADS;
@@ -302,7 +303,6 @@ int main(int argc, char** argv) {
 
 	
 	struct timeval start, end;
-	struct timespec timeout;
 
 	while (1) {
 		c = getopt_long(argc, argv, "ht:n:c:d:i:o:r:", bench_options, &i);
@@ -406,6 +406,8 @@ int main(int argc, char** argv) {
 		printf("Number of dimensions:	%d\n", nr_dimensions);
 		printf("Restarts number:	%d\n", nr_restarts);
 		printf("Input file:		%s\n", input_file);
+		printf("Output file:		%s\n", output_file);
+
 	}
 	printf("rank: %d\n", rank);
 
@@ -419,7 +421,8 @@ int main(int argc, char** argv) {
 	fclose(fp);
 
 	// Allocate memory for centroids and for accumulators
-	allocate_centroids(&centroids, nr_centroids, nr_dimensions);
+	if(allocate_centroids(&centroids, nr_centroids, nr_dimensions) < 0)
+		goto out;
 	points_per_centroid_accumulator = (long *)malloc(sizeof(long) * nr_centroids);
 	centroids_coordinates_accumulator = (double * )malloc(sizeof(double) * nr_centroids * nr_dimensions);
 	
