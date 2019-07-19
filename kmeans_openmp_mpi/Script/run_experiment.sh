@@ -56,8 +56,8 @@ done
 
 echo 'Compiling the program'
 # TODO: substitute with a proper call to the Makefile
-#parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o benchmark $EXPERIMENT;"
 parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o benchmark $EXPERIMENT -fopenmp;"
+#parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o benchmark $EXPERIMENT -fopenmp -DUSE_OMP;"
 
 echo ' =========================== Running the experiment =========================== '
 run_exp
