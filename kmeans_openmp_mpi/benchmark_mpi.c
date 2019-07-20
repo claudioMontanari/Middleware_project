@@ -170,7 +170,7 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 	// - change accumulators to thread local one
 	// - copy thread local accumulators values into the global one after for-loop
 
-	/*
+	
 	#pragma omp parallel for num_threads(2) schedule(static) reduction(+: points_accumulator_thread[0:nr_centroids], coordinates_accumulator_thread[0:nr_centroids*nr_dimensions]) private(d_min, d_temp, closest_centroid) shared(dataset, centroids, nr_points, nr_centroids, nr_dimensions)
   	for(long i = 0; i < nr_points; i++){
 	  	closest_centroid = 0;
@@ -195,9 +195,10 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 
 	copy_int_long_vector(points_accumulator_thread, points_accumulator, nr_centroids, 1);
 	copy_vector(coordinates_accumulator_thread, coordinates_accumulator, nr_centroids, nr_dimensions);
-	*/
+	
 	
 	// ####### Old version without using OpenMP ####### [TODO: add ifdef conditions so that can decide at compile time which version to use]
+	/*
 	for(long i = 0; i < nr_points; i++){
 	  	closest_centroid = 0;
 	  	d_min = distance(&dataset[i * nr_dimensions], &centroids[0], nr_dimensions);
@@ -218,6 +219,7 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 			coordinates_accumulator[closest_centroid * nr_dimensions + j] += dataset[i * nr_dimensions + j];
 		}
   	}
+	*/
 	
 }
 
