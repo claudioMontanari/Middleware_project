@@ -376,12 +376,12 @@ int main(int argc, char** argv) {
 
 	if (rank == 0){
 		printf("Kmeans benchmark\n");
-		printf("Machine number:		%d\n", nr_machines);
-		printf("Thread number:		%d\n", nr_threads);
-		printf("Centroids number:	%d\n", nr_centroids);
-		printf("Number of dimensions:	%d\n", nr_dimensions);
-		printf("Input file:		%s\n", input_file);
-		printf("Output file:		%s\n", output_file);
+		printf("Machine_nr:		%d\n", nr_machines);
+		printf("Thread_nr:		%d\n", nr_threads);
+		printf("Centroids_nr:		%d\n", nr_centroids);
+		printf("Dimensions_nr:		%d\n", nr_dimensions);
+		printf("Input:			%s\n", input_file);
+		printf("Output:			%s\n", output_file);
 
 	}
 	printf("rank: %d\n", rank);
@@ -412,11 +412,12 @@ int main(int argc, char** argv) {
 		centroids_coordinates_accumulator_master = (double* )malloc(sizeof(double) * nr_centroids * nr_dimensions);
 	}
 
+#ifdef DEBUG
 	char name[80];
 	int name_len;
 	MPI_Get_processor_name(name, &name_len);
 	printf("[%d] - processor name %s\n", rank, name);
-
+#endif 
 	if(rank == 0){
 		gettimeofday(&start, NULL);
 	}
@@ -474,9 +475,9 @@ int main(int argc, char** argv) {
 	if (rank == 0){
 		gettimeofday(&end, NULL);
 		duration = (end.tv_sec * 1000 + end.tv_usec / 1000) - (start.tv_sec * 1000 + start.tv_usec / 1000);
-		printf("duration: %d ms\n", duration);		
-		printf("iterations: %ld\n", iterations);
-		printf("centroids: \n");
+		printf("Duration: %d ms\n", duration);		
+		printf("Iterations: %ld\n", iterations);
+		printf("Centroids: \n");
 		
 		for( i = 0; i < nr_centroids * nr_dimensions; i+=nr_dimensions){
 			printf("%d: ", i / nr_dimensions);

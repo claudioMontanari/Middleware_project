@@ -20,7 +20,7 @@ alias blast='parallel-ssh -i -h ./slaves -t 0'
 echo 'Updating the system'
 blast "sudo apt-get update --fix-missing" >/dev/null
 echo 'Installing performance monitoring tools'
-blast "sudo apt-get install --assume-yes gnuplot htop dstat sysstat iperf3 python3-pip" >/dev/null
+blast "sudo apt-get install --assume-yes gnuplot htop dstat sysstat python3-pip" >/dev/null
 
 sudo pip3 install numpy matplotlib
 
