@@ -29,7 +29,7 @@ In order to have the project up and running on your system follow these instruct
 
 ### Prerequisites and Installing
 
-The project requires __ssh__ and __parallel-ssh__ installed and properly configured. Other tools used for running some tests (like pip3, numpy and openmpi ) will be installed on the cluster if you execute the __init_env.sh__ script. In particular, the network configuration is supposed to have four nodes called respectively *node-0, node-1, node-2, node-3*, you can change such names in the above mentioned script. 
+The project requires __ssh__ and __parallel-ssh__ installed and properly configured. In addition to this, in order to be able to run the script that generates the dataset __python3__,  __numpy__ and __matplotlib__ must be installed on your system. Other tools used for running some tests (like gnuplot, and openmpi) will be installed on the cluster if you execute the __init_env.sh__ script. In particular, the network configuration is supposed to have four nodes called respectively *node-0, node-1, node-2, node-3*, you can change such names in the above mentioned script. 
 
 
 ## Running the tests

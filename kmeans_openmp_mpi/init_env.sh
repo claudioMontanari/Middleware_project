@@ -20,9 +20,7 @@ alias blast='parallel-ssh -i -h ./slaves -t 0'
 echo 'Updating the system'
 blast "sudo apt-get update --fix-missing" >/dev/null
 echo 'Installing performance monitoring tools'
-blast "sudo apt-get install --assume-yes gnuplot htop dstat sysstat python3-pip" >/dev/null
-
-sudo pip3 install numpy matplotlib
+blast "sudo apt-get install --assume-yes gnuplot htop dstat sysstat" >/dev/null
 
 echo 'Installing MPI tools'
 blast "sudo apt-get install --assume-yes openmpi-bin openmpi-common openssh-client openssh-server libopenmpi2 libopenmpi-dev" >/dev/null
