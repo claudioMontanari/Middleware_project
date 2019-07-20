@@ -21,9 +21,6 @@ run_experiments(){
 	done
     done
     
-    # Copy the results into the Data directory 
-    cp $OUTPUT ${STARTING_PATH}/Data
-
 }
 
 OPTION=$1
@@ -45,7 +42,7 @@ fi
 
 if [ "$OPTION" = "all" ]; then
     # Generate input file - it will always have 6 centroids in a 2D space
-    python3 ./Script/generate_dataset.py 1000000 "./Data/big_input_$CLUSTER_SIZE.csv"
+    python3 ./Script/generate_dataset.py 2000000 "./Data/big_input_$CLUSTER_SIZE.csv"
     
     # Copy files on all machines & compile
     parallel-ssh -i -h ./slaves mkdir -p "${REMOTE_PATH}Data"
@@ -59,9 +56,12 @@ if [ "$OPTION" = "all" ]; then
 
     #  Run the experiments
     run_experiments
-    
-fi
 
+    # Copy the results into the Data directory
+    SRC_DATA=$(readlink -f ~/experiment/slaves)
+    cp ${SRC_DATA%/*}/${OUTPUT} ${STARTING_PATH}/${OUTPUT}
+
+fi
 
 # Plot the results found
 gnuplot -e "
