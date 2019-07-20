@@ -67,7 +67,7 @@ fi
 gnuplot -e "
 set terminal 'pdfcairo';
 set output './Pictures/comparison.pdf';
-set xlabel '# Threads';
+set xlabel '# Threads per machine';
 set ylabel 'Duration (ms)';
 set xrange [0:46];
 plot for [i=0:*] '$OUTPUT' index i using 1:2 with linespoints title columnhead(1) lw 2 ps .75 lc i+1; 

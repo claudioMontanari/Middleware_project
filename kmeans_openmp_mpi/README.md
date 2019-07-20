@@ -43,8 +43,15 @@ After installation the algorithm can be tested in different ways:
 	- the number of centroids 
 	- the number of dimensions 
 	- optionally you can specify if you want to have a 2D plot of the resulting clustering    
-The command will automatically synchronize a common directory between the cluster's machines, compile the program and run the test. 
+- You can run the __run\_comparison\_experiment.sh__ script which will run a series of experiments varying the number of machines and the number of thread; finally the script will generate a plot of the different time duration.  
+
+(Both the last two commands will automatically synchronize a common directory between the cluster's machines, compile the program and run the test.) 
 
 ## Results 
 
-Here are some plots of the results found. On the x-axis we have the size of the dataset while on the y-axis the execution time. Different lines represents different MPI/OpenMP configurations; in particular, .... 
+Here are some plots of the results found. The experiments where executed on a cluster of 4 machines running Ubuntu 18.04.1 LTS each mounting two Intel(R) Xeon(R) Silver 4114 CPU @ 2.20GHz (20 Cores and 40 Threads in total). 
+On the x-axis we have the number of threads used on each machine, while on the y-axis the have the duration of the experiment expressed in milliseconds; different lines represent different number of machines. For the plot shown below the input dataset was composed of 12 Millions of points. 
+
+![p](./comparison.jpg)
+
+As it's possible to see in the picture the execution time of an experiment drops remarkably just by adding a minimum level of parallelism. The best configuration found for the given input dataset was with 4 machines and 8 threads on each machine. Having an even bigger input dataset would probably benefit from having more threads but, if it's not the case, the synchronization overhead between the threads is a price too high to pay.   
