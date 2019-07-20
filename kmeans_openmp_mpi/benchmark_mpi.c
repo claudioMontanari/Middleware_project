@@ -11,14 +11,12 @@
 
 #include "benchmark_mpi.h"
 
-#define DEFAULT_DURATION 	10000
 #define DEFAULT_ITERATIONS	10
 #define DEFAULT_NTHREADS 	4
 #define DEFAULT_CENTROIDS   	3
 #define DEFAULT_DIMENSIONS  	3
 #define DEFAULT_INPUT   	"./Data/input.csv"
 #define DEFAULT_OUTPUT 		"./Data/output.csv"
-#define DEFAULT_RESTARTS   	0
 #define MIN_NORM		0.000000001
 
 
@@ -27,13 +25,11 @@ void print_args(void)
 	printf("Kmeans benchmark:\n");
 	printf("options:\n");
 	printf("  -h: print help message\n");
-	printf("  -t: experiment running time in milliseconds (default %d)\n", DEFAULT_DURATION);
 	printf("  -n: number of threads per machine (default %d)\n", DEFAULT_NTHREADS);
 	printf("  -c: number of centroids (default %d)\n", DEFAULT_CENTROIDS);
 	printf("  -d: number of dimensions (default %d)\n", DEFAULT_DIMENSIONS);
 	printf("  -i: path to input .csv file (default path %s)\n", DEFAULT_INPUT);
 	printf("  -o: path to output .csv file (default path %s)\n", DEFAULT_OUTPUT);
-	printf("  -r: number of restarts (default %d)\n", DEFAULT_RESTARTS);
 }
 
 
@@ -160,7 +156,7 @@ double distance(double* v1, double* v2, int nr_dimensions){
 }
 
 
-void assign_cluster(double* dataset, double* centroids, long* points_accumulator, double* coordinates_accumulator, long nr_points, int nr_centroids, int nr_dimensions){
+void assign_cluster(double* dataset, double* centroids, long* points_accumulator, double* coordinates_accumulator, long nr_points, int nr_centroids, int nr_dimensions, int nr_threads){
 
 	double d_min, d_temp;
 	int closest_centroid = 0, j;
@@ -180,7 +176,7 @@ void assign_cluster(double* dataset, double* centroids, long* points_accumulator
 	}
 	
 #ifdef USE_OMP	
-#pragma omp parallel for num_threads(2) schedule(static) reduction(+: points_accumulator_thread[:nr_centroids], coordinates_accumulator_thread[:nr_centroids*nr_dimensions]) private(d_min, d_temp, closest_centroid, j, i) shared(dataset, centroids, nr_points, nr_centroids, nr_dimensions)
+#pragma omp parallel for num_threads(nr_threads) schedule(static) reduction(+: points_accumulator_thread[:nr_centroids], coordinates_accumulator_thread[:nr_centroids*nr_dimensions]) private(d_min, d_temp, closest_centroid, j, i) shared(dataset, centroids, nr_points, nr_centroids, nr_dimensions)
   	for(i = 0; i < nr_points; i++){
 	  	closest_centroid = 0;
 	  	d_min = distance(&dataset[i * nr_dimensions], &centroids[0], nr_dimensions);
@@ -268,26 +264,23 @@ void save_to_file(FILE* f_out, double* centroids, int nr_centroids, int dimensio
 int main(int argc, char** argv) {
 	struct option bench_options[] = {
 		{"help",           		no_argument,       NULL, 'h'},
-		{"time-duration",  		required_argument, NULL, 't'},
 		{"num-of-threads", 		required_argument, NULL, 'n'},
 		{"num-of-centroids",		required_argument, NULL, 'c'},
 		{"num-of-dimensions",		required_argument, NULL, 'd'},
 		{"input-file",     		required_argument, NULL, 'i'},
 		{"output-file",    		required_argument, NULL, 'o'},
-		{"restarts",       		required_argument, NULL, 'r'},
 		{0,                		0,                 0,    0  }
 	};
 
 
 	int c, i;
 	long size = 0, iterations = 0;
-	int duration = 					DEFAULT_DURATION;
+	int duration;
 	int nr_threads = 				DEFAULT_NTHREADS;
 	int nr_centroids = 				DEFAULT_CENTROIDS;
 	int nr_dimensions =			 	DEFAULT_DIMENSIONS;
 	char* input_file = 				DEFAULT_INPUT;
 	char* output_file = 				DEFAULT_OUTPUT;
-	int nr_restarts = 				DEFAULT_RESTARTS;
 
 	int nr_machines = 0;
 	int rank = 0;
@@ -304,7 +297,7 @@ int main(int argc, char** argv) {
 	struct timeval start, end;
 
 	while (1) {
-		c = getopt_long(argc, argv, "ht:n:c:d:i:o:r:", bench_options, &i);
+		c = getopt_long(argc, argv, "hn:c:d:i:o:", bench_options, &i);
 
 		if (c == -1)
 			break;
@@ -316,9 +309,6 @@ int main(int argc, char** argv) {
 		case 'h':
 			print_args();
 			goto out;
-		case 't':
-			duration = atoi(optarg);
-			break;
 		case 'n':
 			nr_threads = atoi(optarg);
 			break;
@@ -334,19 +324,12 @@ int main(int argc, char** argv) {
 		case 'o':
 			output_file = optarg;
 			break;
-		case 'r':
-			nr_restarts = atoi(optarg);
-			break;
 		default:
 			printf("Error while processing options.\n");
 			goto out;
 		}
 	}
 
-	if (duration <= 0) {
-		printf("invalid test time\n");
-		goto out;
-	}
 	if (nr_threads <= 0) {
 		printf("invalid thread number\n");
 		goto out;
@@ -372,11 +355,7 @@ int main(int argc, char** argv) {
 		goto out;
 	}
 
-	if (nr_restarts < 0 ) {
-		printf("invalid number of restarts\n");
-		goto out;
-	}
-
+	
 	/*
 	* TODO:
 	*  1. initialize MPI environment
@@ -385,9 +364,8 @@ int main(int argc, char** argv) {
 	*  4. start k-means
 	*  5. stop timing 
 	*  6. write results in output file (append mode, and then close it)
-	*  7. check nr_restarts and in case repeat from 3.
-	*  8. print some statistics
-	*  9. cleanup memory  
+	*  7. print some statistics
+	*  8. cleanup memory  
 	*/
 
 
@@ -398,12 +376,10 @@ int main(int argc, char** argv) {
 
 	if (rank == 0){
 		printf("Kmeans benchmark\n");
-		printf("Test time:		%d\n", duration);
 		printf("Machine number:		%d\n", nr_machines);
 		printf("Thread number:		%d\n", nr_threads);
 		printf("Centroids number:	%d\n", nr_centroids);
 		printf("Number of dimensions:	%d\n", nr_dimensions);
-		printf("Restarts number:	%d\n", nr_restarts);
 		printf("Input file:		%s\n", input_file);
 		printf("Output file:		%s\n", output_file);
 
@@ -455,7 +431,7 @@ int main(int argc, char** argv) {
 		set_accumulators_to_zero(points_per_centroid_accumulator, centroids_coordinates_accumulator, nr_centroids, nr_dimensions);
 
 		// Assign a cluster to each point in the local datset
-		assign_cluster(dataset, centroids, points_per_centroid_accumulator, centroids_coordinates_accumulator, size / nr_machines, nr_centroids, nr_dimensions);
+		assign_cluster(dataset, centroids, points_per_centroid_accumulator, centroids_coordinates_accumulator, size / nr_machines, nr_centroids, nr_dimensions, nr_threads);
 
 		// Reduce the local accumulators on the master node
 		MPI_Reduce(points_per_centroid_accumulator, points_per_centroid_accumulator_master, nr_centroids, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);

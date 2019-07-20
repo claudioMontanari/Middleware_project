@@ -16,11 +16,14 @@ LDFLAGS += -lm -fopenmp
 
 .PHONY: all clean
 
-BINS = kmeans test
+BINS = kmeans kmeans_no_omp test
 
 all: $(BINS)
 
 kmeans: benchmark_mpi.c benchmark_mpi.h
+	$(MPICC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -DUSE_OMP
+
+kmeans_no_omp: benchmark_mpi.c benchmark_mpi.h
 	$(MPICC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 report.pdf: report.tex

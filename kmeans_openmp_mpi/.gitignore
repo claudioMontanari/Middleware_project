@@ -6,3 +6,6 @@
 
 # Ignore network config files
 slaves
+
+# Ignore big datapoint file
+Data/big_input*.csv

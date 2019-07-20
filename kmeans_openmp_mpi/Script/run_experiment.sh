@@ -1,15 +1,18 @@
 #! /bin/bash
 #
-# The following script copy the input file in the fs
-# of all the machines in the cluster (file ../slaves),
-# compile the benchmark program and it runs it on the cluster.
+# The following script copies the benchmark surce code and
+# the data input file in the fs of all the machines in the cluster (file ../slaves);
+# it compiles the benchmark program and it runs it on the cluster.
 # For a proper execution run the script from the
 # kmeans_openmp_mpi directory.
 
 run_exp(){
-	cd /users/claudio/experiment
-	mpirun -n 4 -mca btl ^openib --host $(cat ./slaves | tr '\n' ',' )  './kmeans' -i $INPUT_FILE -o $OUTPUT_FILE ${EXP_PARAMETERS[@]}
-	if [ "$PLOT" = "true" ]; then 
+    	EXP_PATH=$(readlink -f $REMOTE_PATH$FILES)
+	#	cd /users/claudio/experiment
+	cd $EXP_PATH
+	mpirun -n ${#NODES[@]} -mca btl ^openib --host $(cat ./slaves | tr '\n' ',' )  './kmeans' -i $INPUT_FILE -o $OUTPUT_FILE ${EXP_PARAMETERS[@]}
+
+	if [ "$PLOT" = "plot" ]; then 
 		echo 'plotting resulting clustering'
 		gnuplot -e "
 set terminal 'pdfcairo';
@@ -30,7 +33,6 @@ PLOT=$4
 echo "parameters: ${EXP_PARAMETERS[@]}"
 
 REMOTE_PATH='~/experiment/'
-STARTING_PATH=$(pwd)
 
 if [ "$#" -ne 4 ]; then
 	echo 'Error, usage: run_experiment.sh input_file output_file "input parameter list" [plot]'
@@ -57,7 +59,6 @@ for n in ${NODES[@]}; do
 done
 
 echo 'Compiling the program'
-# TODO: substitute with a proper call to the Makefile
 #parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o kmeans $EXPERIMENT -fopenmp;"
 #parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; mpicc -o kmeans $EXPERIMENT -fopenmp -DUSE_OMP;"
 parallel-ssh -i -h ./slaves "cd $REMOTE_PATH; make clean kmeans;" >/dev/null 2>&1
