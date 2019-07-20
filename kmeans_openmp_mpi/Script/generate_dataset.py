@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+
 
 mu_list = [[50, 50], [50, 100], [100, 100], [100, 50], [100, 200], [200, 100]]
-sigma = [[5, 0], [0, 50]]
-nr_points_per_centroid = 50000
+sigma = [[50, 0], [0, 50]]
+nr_points_per_centroid = sys.argv[0]
 nr_centroids = len(mu_list)
 nr_points = nr_points_per_centroid * nr_centroids
 centroids = [[nr_points, nr_points]]

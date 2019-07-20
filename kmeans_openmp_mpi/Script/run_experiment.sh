@@ -7,9 +7,8 @@
 # kmeans_openmp_mpi directory.
 
 run_exp(){
-    	EXP_PATH=$(readlink -f $REMOTE_PATH$FILES)
-	#	cd /users/claudio/experiment
-	cd $EXP_PATH
+    	EXP_PATH=$(readlink -f ~/experiment/slaves)
+	cd ${EXP_PATH%/*}
 	mpirun -n ${#NODES[@]} -mca btl ^openib --host $(cat ./slaves | tr '\n' ',' )  './kmeans' -i $INPUT_FILE -o $OUTPUT_FILE ${EXP_PARAMETERS[@]}
 
 	if [ "$PLOT" = "plot" ]; then 
@@ -34,7 +33,7 @@ echo "parameters: ${EXP_PARAMETERS[@]}"
 
 REMOTE_PATH='~/experiment/'
 
-if [ "$#" -ne 4 ]; then
+if [ "$#" -ne 4 ] && [ "$#" -ne 3 ] ; then
 	echo 'Error, usage: run_experiment.sh input_file output_file "input parameter list" [plot]'
 	exit
 fi
