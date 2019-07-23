@@ -12,9 +12,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 read -a NODES <<< $1
-    
 echo ${NODES[@]} | tr ',' '\n' > ./slaves
-
 
 # Test ssh connection between nodes
 parallel-ssh -i -h ./slaves -t 0 -O StrictHostKeyChecking=no hostname

@@ -25,7 +25,8 @@ run_experiments(){
 
 OPTION=$1
 
-CLUSTER_SIZE=5000
+
+CLUSTER_SIZE=2000
 readarray NODES < ./slaves
 FILES=('slaves' 'benchmark_mpi.c' 'benchmark_mpi.h' 'Makefile' "Data/big_input_$CLUSTER_SIZE.csv")
 THREAD_NR=(1 2 4 8 16 40)
@@ -42,7 +43,7 @@ fi
 
 if [ "$OPTION" = "all" ]; then
     # Generate input file - it will always have 6 centroids in a 2D space
-    python3 ./Script/generate_dataset.py 2000000 "./Data/big_input_$CLUSTER_SIZE.csv"
+    python3 ./Script/generate_dataset.py $CLUSTER_SIZE "./Data/big_input_$CLUSTER_SIZE.csv"
     
     # Copy files on all machines & compile
     parallel-ssh -i -h ./slaves mkdir -p "${REMOTE_PATH}Data"
@@ -59,7 +60,8 @@ if [ "$OPTION" = "all" ]; then
 
     # Copy the results into the Data directory
     SRC_DATA=$(readlink -f ~/experiment/slaves)
-    cp ${SRC_DATA%/*}/${OUTPUT} ${STARTING_PATH}/${OUTPUT}
+    echo "${SRC_DATA%/*}/${OUTPUT} to ${STARTING_PATH}/${OUTPUT}"
+    cp "${SRC_DATA%/*}/${OUTPUT}" "${STARTING_PATH}/${OUTPUT}"
 
 fi
 
