@@ -20,16 +20,18 @@ The chosen architecture is meant to perform better in a scenario of heavy worklo
 
 The picture below should help to better understand and visualize the implemented architecture. 
 
-![test](./kmeans_MPI_OMP.png)
+![test](./Pictures/kmeans_MPI_OMP.png)
 
 ## Getting Started 
 
-In order to have the project up and running on your system follow these instructions:
+In order to have the project up and running on your system clone the repository and follow these instructions:
 
 
 ### Prerequisites and Installing
 
-The project requires __ssh__ and __parallel-ssh__ installed and properly configured. In addition to this, in order to be able to run the script that generates the dataset __python3__,  __numpy__ and __matplotlib__ must be installed on your system. Other tools used for running some tests (like gnuplot, and openmpi) will be installed on the cluster if you execute the __init_env.sh__ script. In particular, the network configuration is supposed to have four nodes called respectively *node-0, node-1, node-2, node-3*, you can change such names in the above mentioned script. 
+The project requires __ssh__ and __parallel-ssh__ installed and properly configured. In addition to this, in order to be able to run the script that generates the dataset __python3__,  __numpy__ and __matplotlib__ must be installed on your system. Other tools used for running some tests (like gnuplot, and openmpi) will be installed on the cluster if you execute the __init_env.sh__ script. In particular, the network configuration is supposed to have four nodes called respectively *node-0, node-1, node-2, node-3*, you can change such names in the above mentioned script passing a comma separated list of host names as input argument.
+
+**Example:**  `./init_env.sh "node-0,node-1,node-2,node-3"` 
 
 
 ## Running the tests
@@ -43,15 +45,21 @@ After installation the algorithm can be tested in different ways:
 	- the number of centroids 
 	- the number of dimensions 
 	- optionally you can specify if you want to have a 2D plot of the resulting clustering    
-- You can run the __run\_comparison\_experiment.sh__ script which will run a series of experiments varying the number of machines and the number of thread; finally the script will generate a plot of the different time duration.  
+- You can run the __run\_comparison\_experiment.sh__ script which will run a series of experiments varying the number of machines and the number of thread; optionally, the script will generate a plot of the different time duration.
+
+**Example:**
+- `./run_comparison_script.sh all` runs the experiments
+- `./run_comparison_script.sh plot` only plot the results
 
 (Both the last two commands will automatically synchronize a common directory between the cluster's machines, compile the program and run the test.) 
 
 ## Results 
 
 Here are some plots of the results found. The experiments where executed on a cluster of 4 machines running Ubuntu 18.04.1 LTS each mounting two Intel(R) Xeon(R) Silver 4114 CPU @ 2.20GHz (20 Cores and 40 Threads in total). 
-On the x-axis we have the number of threads used on each machine, while on the y-axis the have the duration of the experiment expressed in milliseconds; different lines represent different number of machines. For the plot shown below the input dataset was composed of 12 Millions of points. 
+On the x-axis we have the number of threads used on each machine, while on the y-axis the have the duration of the experiment expressed in milliseconds; different lines represent different number of machines. For the plot shown below the input dataset was composed of 12 Millions of points (2 dimensions). 
 
-![p](./comparison.jpg)
+![p](./Pictures/comparison_small_dataset.jpg)
 
-As it's possible to see in the picture the execution time of an experiment drops remarkably just by adding a minimum level of parallelism. The best configuration found for the given input dataset was with 4 machines and 8 threads on each machine. Having an even bigger input dataset would probably benefit from having more threads but, if it's not the case, the synchronization overhead between the threads is a price too high to pay.   
+As it's possible to see in the picture the execution time of an experiment drops remarkably just by adding a minimum level of parallelism. The best configuration found for the given input dataset was with 4 machines and 8 threads on each machine. Having an even bigger input dataset would probably benefit from having more threads but, if it's not the case, the synchronization overhead between the threads is a price too high to pay. A proof of this is shown in the figure below, where the size of the input dataset was reduced to 12 thousands of points (2 dimensions) 
+
+![p](./Pictures/comparison_small_dataset.jpg)

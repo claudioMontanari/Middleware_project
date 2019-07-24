@@ -67,12 +67,12 @@ fi
 
 # Plot the results found
 gnuplot -e "
-set terminal 'pdfcairo';
-set output './Pictures/comparison.pdf';
+set terminal 'pngcairo';
+set output './Pictures/comparison.png';
 set xlabel '# Threads per machine';
 set ylabel 'Duration (ms)';
 set xrange [0:46];
-plot for [i=0:*] '$OUTPUT' index i using 1:2 with linespoints title columnhead(1) lw 2 ps .75 lc i+1; 
+plot for [i=0:*] './Data/comparison_small_dataset_12kpts.txt' index i using 1:2 with linespoints title columnhead(1) lw 2 ps .75 lc i+1; 
 "
 
 exit
