@@ -70,7 +70,7 @@ if [ "$OPTION" = "all" ]; then
 
     # Copy the results into the Data directory
     SRC_DATA=$(readlink -f ~/experiment/slaves)
-    echo "${SRC_DATA%/*}/${OUTPUT} to ${STARTING_PATH}/${OUTPUT}"
+    #echo "${SRC_DATA%/*}/${OUTPUT} to ${STARTING_PATH}/${OUTPUT}"
     cp "${SRC_DATA%/*}/${OUTPUT}" "${STARTING_PATH}/${OUTPUT}"
 
 fi
