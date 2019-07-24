@@ -58,7 +58,7 @@ After installation the algorithm can be tested in different ways:
 Here are some plots of the results found. The experiments where executed on a cluster of 4 machines running Ubuntu 18.04.1 LTS each mounting two Intel(R) Xeon(R) Silver 4114 CPU @ 2.20GHz (20 Cores and 40 Threads in total). 
 On the x-axis we have the number of threads used on each machine, while on the y-axis the have the duration of the experiment expressed in milliseconds; different lines represent different number of machines. For the plot shown below the input dataset was composed of 12 Millions of points (2 dimensions). 
 
-![p](./Pictures/comparison_small_dataset.png)
+![p](./Pictures/comparison_big_dataset.png)
 
 As it's possible to see in the picture the execution time of an experiment drops remarkably just by adding a minimum level of parallelism. The best configuration found for the given input dataset was with 4 machines and 8 threads on each machine. Having an even bigger input dataset would probably benefit from having more threads but, if it's not the case, the synchronization overhead between the threads is a price too high to pay. A proof of this is shown in the figure below, where the size of the input dataset was reduced to 12 thousands of points (2 dimensions) 
 
