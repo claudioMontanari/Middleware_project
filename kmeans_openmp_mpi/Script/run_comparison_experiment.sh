@@ -5,11 +5,21 @@
 # varying the numbers of threads and the number of machines used.
 # Finally, a comparison plot of different execution times is generated
 
+start_dstat(){
+    parallel-ssh -i -h ./slaves "rm dstat_${PLOT_NAME%.png}.csv; dstat --output dstat_${PLOT_NAME%.png}.csv  &>/dev/null &"
+}
+
+terminate_dstat(){
+    parallel-ssh -i -h ./slaves "ps aux | grep -i 'dstat' | grep -Eiv 'ssh|grep' | awk -F' ' '{print \$2}' | xargs kill -9"
+}
+
 run_experiments(){
     EXP_PATH=$(readlink -f ~/experiment/slaves)
     cd ${EXP_PATH%/*}
     rm $OUTPUT
     touch $OUTPUT
+
+    start_dstat
     for m in ${MACHINE_NR[@]}; do
 	echo "Testing with $m nodes"
 	
@@ -20,13 +30,13 @@ run_experiments(){
 	    sleep 2s	    
 	done
     done
-    
+    terminate_dstat
 }
 
 OPTION=$1
+CLUSTER_SIZE=${2:-2000}
+PLOT_NAME=${3:-'comparison.png'}
 
-
-CLUSTER_SIZE=2000
 readarray NODES < ./slaves
 FILES=('slaves' 'benchmark_mpi.c' 'benchmark_mpi.h' 'Makefile' "Data/big_input_$CLUSTER_SIZE.csv")
 THREAD_NR=(1 2 4 8 16 40)
@@ -36,8 +46,8 @@ STARTING_PATH=$(pwd)
 REMOTE_PATH='~/experiment/'
 OUTPUT='Data/comparison.txt'
 
-if [ "$#" -ne 1 ]; then
-    echo 'Error, usage: run_comparison_exp.sh (all|plot)'
+if [ "$#" -lt 1 ] || [ "$#" -gt 3 ] ; then
+    echo 'Error, usage: run_comparison_exp.sh (all|plot) cluster_size plot_name'
     exit
 fi
 
@@ -68,11 +78,11 @@ fi
 # Plot the results found
 gnuplot -e "
 set terminal 'pngcairo';
-set output './Pictures/comparison.png';
+set output './Pictures/${PLOT_NAME}';
 set xlabel '# Threads per machine';
 set ylabel 'Duration (ms)';
 set xrange [0:46];
-plot for [i=0:*] './Data/comparison_small_dataset_12kpts.txt' index i using 1:2 with linespoints title columnhead(1) lw 2 ps .75 lc i+1; 
+plot for [i=0:*] '$OUTPUT' index i using 1:2 with linespoints title columnhead(1) lw 2 ps .75 lc i+1; 
 "
 
 exit
