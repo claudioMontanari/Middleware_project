@@ -423,7 +423,7 @@ int main(int argc, char** argv) {
 	}
 
 	double norm = 1.0;
-	while( norm > MIN_NORM && iterations < 10){
+	while( norm > MIN_NORM ){
 
 	  	// Broadcast new centroids to all machines
 	  	MPI_Bcast(centroids, nr_centroids*nr_dimensions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
