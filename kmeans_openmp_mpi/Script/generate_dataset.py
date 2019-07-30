@@ -2,15 +2,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 
+# Usage: python3 generate_dataset.py nr_points_per_centroid output_filename 
+if (len(sys.argv) <= 1 or len(sys.argv) > 3):
+    print("Error, usage: python3 generate_dataset.py nr_points_per_centroid output_filename")
+    sys.exit()
 
 mu_list = [[50, 50], [50, 100], [100, 100], [100, 50], [100, 200], [200, 100]]
 sigma = [[50, 0], [0, 50]]
+
+mu_list = [[50, 50, 50], [50, 100, 100], [100, 100, 100], [100, 50, 50], [100, 200, 200], [200, 100, 100]]
+sigma = [[50, 0, 0], [0, 50, 0], [0, 0, 50]]
+
 nr_points_per_centroid = int(sys.argv[1])
-output_file = sys.argv[2]
+output_file = sys.argv[2] if (len(sys.argv) == 3) else ''
 
 nr_centroids = len(mu_list)
 nr_points = nr_points_per_centroid * nr_centroids
-centroids = [[nr_points, nr_points]]
+
+#centroids = [[nr_points, nr_points]]
+centroids = [[nr_points, nr_points, nr_points]]
 
 for mu in mu_list:
     #print(*mu, sep =", ")
